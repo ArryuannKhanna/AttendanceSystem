@@ -25,7 +25,8 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('',home,name='home'),
     path('login/',login_page,name='login'),
-    path('signup/',signup,name='signup')
+    path('signup/',signup,name='signup'),
+    # path('process-webcam/', process_webcam, name='process_webcam')
 ]
 
 

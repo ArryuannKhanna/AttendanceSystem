@@ -2,4 +2,32 @@
 
 {% block second %}
 
+<video id="video" playsinline autoplay></video>
+
+<script>
+    var video = document.getElementById('video');
+
+    // Prompt user to start video stream
+    navigator.mediaDevices.getUserMedia({ video: true })
+        .then(stream => video.srcObject = stream);
+
+    var connection = new WebSocket('ws://localhost:8000/ws/stream/');
+
+
+    video.onloadedmetadata = function() {
+        // Send video frames to the server every 100 milliseconds
+        setInterval(() => {
+            var canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            var ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            canvas.toBlob(blob => {
+                connection.send(blob);
+            }, 'image/jpeg');
+        }, 100);
+    };
+</script>
+
+
 {% endblock %}
