@@ -38,12 +38,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-]
-EXTERNAL_APPS = [
     'home'
 ]
 
-INSTALLED_APPS += EXTERNAL_APPS
+
+# INSTALLED_APPS += EXTERNAL_APPS
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -73,7 +72,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'attendancesystem.wsgi.application'
+# WSGI_APPLICATION = 'attendancesystem.wsgi.application'
 ASGI_APPLICATION = 'attendancesystem.asgi.application'
 
 
@@ -87,10 +86,10 @@ DATABASES = {
     }
 }
 CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG': {
-            "hosts": [('127.0.0.1', 6379)],
+    "default": {
+        "BACKEND": "channels_redis.pubsub.RedisPubSubChannelLayer",
+        "CONFIG": {
+            "hosts": [("localhost", 6379)],
         },
     },
 }

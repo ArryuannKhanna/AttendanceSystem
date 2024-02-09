@@ -11,7 +11,10 @@ import os
 from django.core.asgi import get_asgi_application
 from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.auth import AuthMiddlewareStack
+from django.urls import re_path
 import home.routing
+from django.urls import path
+from home.consumers import VideoStreamConsumer
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'attendancesystem.settings')
 
@@ -19,7 +22,9 @@ application = ProtocolTypeRouter({
   "http": get_asgi_application(),
   "websocket": AuthMiddlewareStack(
         URLRouter(
-            home.routing.websocket_urlpatterns
+            [
+                re_path(r'^ws/stream/$', VideoStreamConsumer.as_asgi()),
+            ]
         )
     ),
 })
