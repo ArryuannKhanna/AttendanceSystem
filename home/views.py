@@ -1,8 +1,11 @@
+import random
+
 from django.shortcuts import render,redirect
 from django.contrib.auth.decorators import login_required
 # from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login
+from django.contrib.auth.hashers import check_password
 from django.contrib.auth.hashers import make_password
 
 import cv2
@@ -11,31 +14,41 @@ import numpy as np
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from .models import CustomUser
+import random
 from .models import Classroom
 
+@csrf_exempt
 def loginUser(request):
     if request.method == 'POST':
         email = request.POST.get('email')
         password = request.POST.get('password')
-        user = authenticate(request, email=email, password=password)
-        if user is not None:
-            login(request, user)
-            data = {
-                'message': 'Login successful'
-            }
-            response = JsonResponse(data)
-            response.set_cookie('email', email)
-            return response
-        else:
+
+        # Retrieve user object from database
+        user = CustomUser.objects.filter(email=email).first()
+
+        # Check if user exists and password is correct
+        if user is None or not check_password(password, user.password):
             return JsonResponse({'error': 'Invalid credentials'}, status=401)
+
+        # Login user
+        login(request, user)
+
+        # Set cookie
+        response = JsonResponse({'message': 'Login successful'})
+        response.set_cookie('email', email)
+        return response
     else:
         return JsonResponse({'error': 'Invalid request method'}, status=405)
 
+
+@csrf_exempt
 def registerUser(request):
     if request.method == 'POST':
         username = request.POST.get('username')
         email = request.POST.get('email')
         password = request.POST.get('password')
+        print(request.POST)
+        print(email)
         # photos = request.POST.get('photo')
         
         if CustomUser.objects.filter(email=email).exists():
@@ -51,7 +64,8 @@ def registerUser(request):
     else:
         return JsonResponse({'error': 'Invalid request method'}, status=405)
 
- 
+
+@csrf_exempt
 def getDashboardDetails(request):
     if request.method == 'GET':
         email = request.COOKIES.get('email')
@@ -76,7 +90,7 @@ def getDashboardDetails(request):
     else:
         return JsonResponse({'error': 'Invalid request method'}, status=405)
 
-
+@csrf_exempt
 def joinClassroom(request):
     if request.method == 'POST':
         email = request.COOKIES.get('email')  # Get email from the cookie
@@ -91,7 +105,7 @@ def joinClassroom(request):
             classroom = Classroom.objects.get(code=classCode)  # Assuming you have a Classroom model with a unique code field
             
             # Add the classroom to the joinedClasses list
-            user.joinedClasses.add(classroom)
+            user.add_joined_class(classroom.code)
             user.save()
             
             return JsonResponse({'message': 'Classroom joined successfully'}, status=200)
@@ -103,7 +117,7 @@ def joinClassroom(request):
         return JsonResponse({'error': 'Invalid request method'}, status=405)
 
 
-
+@csrf_exempt
 def createClassroom(request):
     if request.method == 'POST':
         email = request.COOKIES.get('email')  # Get email from the cookie
@@ -112,21 +126,22 @@ def createClassroom(request):
             return JsonResponse({'error': 'Email not found in cookie'}, status=400)
         
         className = request.POST.get('className')
-        
+        classCode = random.randint(1000, 9999)
         try:
             user = CustomUser.objects.get(email=email)
-            new_classroom = Classroom.objects.create(name=className)
+            new_classroom = Classroom.objects.create(hostEmailId = email,name=className, code=classCode)
             
-            user.createdClasses.add(new_classroom)
+            user.add_joined_class(new_classroom.code)
             user.save()
+
             
-            return JsonResponse({'message': 'Classroom created successfully'}, status=200)
+            return JsonResponse({'message': 'Classroom created successfully', 'code':new_classroom.code}, status=200)
         except CustomUser.DoesNotExist:
             return JsonResponse({'error': 'CustomUser not found'}, status=404)
     else:
         return JsonResponse({'error': 'Invalid request method'}, status=405)
 
-
+@csrf_exempt
 def handleClassroomRequests(request, classCode):
     if request.method == 'POST':
         email = request.COOKIES.get('email')  # Get email from the cookie
@@ -148,10 +163,12 @@ def handleClassroomRequests(request, classCode):
             return JsonResponse({'error': 'Classroom not found'}, status=404)
     elif request.method == 'GET':
         try:
-            classDetails = Classroom.objects.get(classCode=classCode)
+            print(classCode)
+            classDetails = Classroom.objects.get(code=classCode)
             # Get class details logic here
+            print(classDetails)
             
-            return JsonResponse(classDetails)
+            return JsonResponse(classDetails.hostEmailId, safe=False)
         except Classroom.DoesNotExist:
             return JsonResponse({'error': 'Classroom not found'}, status=404)
     else:

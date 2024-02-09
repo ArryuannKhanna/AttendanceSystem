@@ -41,7 +41,6 @@ INSTALLED_APPS = [
     'home'
 ]
 
-
 # INSTALLED_APPS += EXTERNAL_APPS
 
 MIDDLEWARE = [

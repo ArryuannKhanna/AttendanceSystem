@@ -24,13 +24,12 @@ from home.views import *
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('',home),
-    path('loginUser/',loginUser),
-    path('registerUser/',registerUser),
-    path('classroom/<str:classCode>/', handleClassroomRequests),
-    path('getDashboardDetails/',getDashboardDetails),
-    path('joinClassroom/',joinClassroom),
-    path('createClassroom/',createClassroom),
+    path('loginUser',loginUser),
+    path('registerUser',registerUser),
+    path('classroom/<str:classCode>', handleClassroomRequests),
+    path('getDashboardDetails',getDashboardDetails),
+    path('joinClassroom',joinClassroom),
+    path('createClassroom',createClassroom),
 
     # path('process-webcam/', process_webcam, name='process_webcam')
 ]
