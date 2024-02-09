@@ -11,6 +11,7 @@ import numpy as np
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from .models import CustomUser
+from .models import Classroom
 
 def loginUser(request):
     if request.method == 'POST':
@@ -35,7 +36,7 @@ def registerUser(request):
         username = request.POST.get('username')
         email = request.POST.get('email')
         password = request.POST.get('password')
-        photos = request.POST.get('photo')
+        # photos = request.POST.get('photo')
         
         if CustomUser.objects.filter(email=email).exists():
             return JsonResponse({'error': 'Email is already registered'}, status=400)
@@ -57,7 +58,6 @@ def getDashboardDetails(request):
 
         if not email:
             return JsonResponse({'error': 'Email not found in cookie'}, status=400)
-
         try:
             user = CustomUser.objects.get(email=email)
             username = user.username

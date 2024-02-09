@@ -5,6 +5,7 @@ import numpy as np
 import cv2
 import face_recognition
 import pickle
+import json
 
 
 class VideoStreamConsumer(AsyncWebsocketConsumer):
@@ -40,6 +41,10 @@ class VideoStreamConsumer(AsyncWebsocketConsumer):
                 matches = face_recognition.compare_faces(encodelistknown, encface)
                 face_dist = face_recognition.face_distance(encodelistknown, encface)
                 best_match_index = np.argmin(face_dist)
+
+            if matches[np.argmin(face_dist)]:
+                y1, x2, y2, x1 = facepos
+                await self.send(text_data=json.dumps({'type': 'face_position', 'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2}))
 
             print(name_of_students[best_match_index])
             # Here, you can process the image with face_recognition

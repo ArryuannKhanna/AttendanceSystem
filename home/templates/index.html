@@ -2,31 +2,59 @@
 
 {% block second %}
 
-<video id="video" playsinline autoplay></video>
+<video id="video" style="position: absolute;
+    top: 0;
+    left: 0;" playsinline autoplay></video>
+<canvas id="overlay" style="position: absolute;
+    top: 0;
+    left: 0;"></canvas> <!-- Add this line -->
+
+
+<!--#video, #overlay {-->
+<!--    position: absolute;-->
+<!--    top: 0;-->
+<!--    left: 0;-->
+<!--}-->
 
 <script>
     var video = document.getElementById('video');
+var overlay = document.getElementById('overlay');
+overlay.width = video.width;  // Set the canvas size equal to the video size
+overlay.height = video.height;
+var ctx = overlay.getContext('2d');
 
-    // Prompt user to start video stream
-    navigator.mediaDevices.getUserMedia({ video: true })
-        .then(stream => video.srcObject = stream);
+navigator.mediaDevices.getUserMedia({ video: true })
+    .then(stream => video.srcObject = stream);
 
-    var connection = new WebSocket('ws://localhost:8000/ws/stream/');
+var connection = new WebSocket('ws://localhost:8000/ws/stream/');
 
+connection.onmessage = function(event) {
+    var data = JSON.parse(event.data);
+    if (data.type && data.type === 'face_position') {
+        // Clear previous drawings
+        ctx.clearRect(0, 0, overlay.width, overlay.height);
+        // Draw new bounding box
+        ctx.beginPath();
+        ctx.rect(data.x1, data.y1, data.x2 - data.x1, data.y2 - data.y1);
+        ctx.strokeStyle = "blue";
+        ctx.stroke();
+    }
+};
 
-    video.onloadedmetadata = function() {
-        // Send video frames to the server every 100 milliseconds
-        setInterval(() => {
-            var canvas = document.createElement('canvas');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            var ctx = canvas.getContext('2d');
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            canvas.toBlob(blob => {
-                connection.send(blob);
-            }, 'image/jpeg');
-        }, 100);
-    };
+video.onloadedmetadata = function() {
+    overlay.width = video.videoWidth;
+    overlay.height = video.videoHeight;
+    setInterval(() => {
+        var canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        var ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(blob => {
+            connection.send(blob);
+        }, 'image/jpeg');
+    }, 100);
+};
 </script>
 
 
