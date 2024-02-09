@@ -16,33 +16,66 @@ from django.views.decorators.csrf import csrf_exempt
 def home(request):
     return render(request, 'index.html')
 
-def login_page(request):
+def login_user(request):
     if request.method == 'POST':
-        username = request.POST.get('username')
+        username = request.POST.get('email')
         password = request.POST.get('password')
-        user = authenticate(request, username=username, password=password)
+        user = authenticate(request, email=email, password=password)
         if user is not None:
             login(request, user)
             return redirect('home')
     return render(request, 'login.html')
 
-def signup(request):
+def register_user(request):
     if request.method == 'POST':
-        firstname = request.POST.get('first_name')
-        print(firstname)
-        lastname  = request.POST.get('last_name')
-        print(lastname)
         username = request.POST.get('username')
         print(username)
+        email = request.POST.get('email')
+        print(email)
         password = request.POST.get('password')
         print(password)
-        if User.objects.filter(username=username).exists():
+        if User.objects.filter(email=email).exists():
             return render(request, 'signup.html', {'error': 'Username or email already exists'})
-        user = User.objects.create(username=username,password=make_password(password))
+        user = User.objects.create(username=username,email=email,password=make_password(password))
         user.save()
         return redirect('home')
     return render(request, 'signup.html')
 
+from django.shortcuts import render
+from .models import User  # Assuming your user model is named 'User'
+
+def dashboard(request):
+    if request.method == 'GET':
+        email = request.GET.get('email')
+        user = User.objects.get(email=email)
+        classjoined = user.classjoined  # Remove () after classjoined and classcreated
+        classcreated = user.classcreated
+        return render(request, 'dashboard.html', {'classjoined': classjoined, 'classcreated': classcreated})  # Correct the syntax of render method
+
+    elif request.method == 'POST':  # Change IF to elif and correct the syntax
+        email = request.POST.get('email')
+        classjoined = request.POST.get('classjoined')  # Correct the variable names
+        classcreated = request.POST.get('classcreated')  # Correct the variable names
+        user = User.objects.get(email=email)
+        user.classjoined = classjoined  # Assign the new values to the user object
+        user.classcreated = classcreated  # Assign the new values to the user object
+        user.save()  # Save the changes to the user object
+        return render(request, 'dashboard.html')  # Render the dashboard template
+
+    else:
+        # Handle other HTTP methods if necessary
+        return render(request, 'dashboard.html')
+
+def classroom(request):
+    #Get attendace from the database
+    if request.method == 'GET':
+        email = request.GET.get('email')
+        user = User.objects.get(email=email)
+        attendace = user.attendace
+        return render(request, 'dashboard.html', {'user': user, 'attendace': attendace})
+    #Changes made by the admin
+    elif request.method == 'POST':
+        email = request.POST.get('email')
 
 # @csrf_exempt
 # def process_webcam(request):
