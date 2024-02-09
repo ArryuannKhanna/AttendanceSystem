@@ -11,71 +11,88 @@ import numpy as np
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
-# Create your views here.
+# we dont have to render any page, we have to return the response
 
-def home(request):
-    return render(request, 'index.html')
-
-def login_user(request):
-    if request.method == 'POST':
+def loginUser(request):    
+    if request.method == 'POST':    #login user
         username = request.POST.get('email')
         password = request.POST.get('password')
         user = authenticate(request, email=email, password=password)
         if user is not None:
             login(request, user)
-            return redirect('home')
-    return render(request, 'login.html')
+            return JsonResponse({'Logged In successfully'})
 
-def register_user(request):
-    if request.method == 'POST':
+        return JsonResponse({'User not found'}, status=404)
+
+def registerUser(request):     
+    if request.method == 'POST':    #register user
         username = request.POST.get('username')
-        print(username)
         email = request.POST.get('email')
-        print(email)
         password = request.POST.get('password')
-        print(password)
+        photos = request.POST.get('photo')
         if User.objects.filter(email=email).exists():
             return render(request, 'signup.html', {'error': 'Username or email already exists'})
         user = User.objects.create(username=username,email=email,password=make_password(password))
         user.save()
-        return redirect('home')
-    return render(request, 'signup.html')
+        return JsonResponse({'Registered successfully'})
 
 from django.shortcuts import render
-from .models import User  # Assuming your user model is named 'User'
+from .models import User 
 
-def dashboard(request):
-    if request.method == 'GET':
+def getDashboardDetails(request): 
+    if request.method == 'GET': # get dashboard details of users
         email = request.GET.get('email')
         user = User.objects.get(email=email)
-        classjoined = user.classjoined  # Remove () after classjoined and classcreated
-        classcreated = user.classcreated
-        return render(request, 'dashboard.html', {'classjoined': classjoined, 'classcreated': classcreated})  # Correct the syntax of render method
+        username = user.username
+        joinedClasses = user.joinedClasses
+        createdClasses = user.createdClasses
+        data = {
+            'joinedClasses': joinedClasses,
+            'createdClasses': createdClass
+        }
+        return JsonResponse(data)
 
-    elif request.method == 'POST':  # Change IF to elif and correct the syntax
-        email = request.POST.get('email')
-        classjoined = request.POST.get('classjoined')  # Correct the variable names
-        classcreated = request.POST.get('classcreated')  # Correct the variable names
+def joinClassroom(request):
+    if request.method == 'POST':  
+        email = request.POST.get('email')   # we dont take input email from user
+        joinedClasses = request.POST.get('classCode')
         user = User.objects.get(email=email)
-        user.classjoined = classjoined  # Assign the new values to the user object
-        user.classcreated = classcreated  # Assign the new values to the user object
-        user.save()  # Save the changes to the user object
-        return render(request, 'dashboard.html')  # Render the dashboard template
+        user.joinedClasses = joinedClasses  # add the joined class to list
+
+        user.save()
+        return JsonResponse({'Class Joined successfully'}, status=200)    # what to send??
+
+
+def createClassroom(request):
+    if request.method == 'POST': 
+        email = request.POST.get('email')
+        className = request.POST.get('className')
+        #handle making a new classroom
+        user = User.objects.get(email=email)
+        user.createdClasses = createdClasses    # add the created class to list
+        user.save()
+        return JsonResponse({'Class Created successfully'}, status=200)    # what to send??
 
     else:
-        # Handle other HTTP methods if necessary
         return render(request, 'dashboard.html')
 
-def classroom(request):
-    #Get attendace from the database
-    if request.method == 'GET':
+def handleClassroomRequests(request, classCode):
+    if request.method == 'POST':    # update attendance
         email = request.GET.get('email')
-        user = User.objects.get(email=email)
+        studentList = request.GET.get('studentList')
+        classDetails = Class.objects.get(classCode=classCode)
         attendace = user.attendace
-        return render(request, 'dashboard.html', {'user': user, 'attendace': attendace})
-    #Changes made by the admin
-    elif request.method == 'POST':
-        email = request.POST.get('email')
+
+        return JsonResponse({'Attendance saved successfully'}, status=200)
+    elif request.method == 'GET':   #get class Details
+        classDetails = Class.objects.get(classCode=classCode)
+
+        return JsonResponse(classDetails)
+
+
+
+
+
 
 # @csrf_exempt
 # def process_webcam(request):

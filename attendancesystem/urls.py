@@ -20,12 +20,14 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from home.views import *
+from . import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('',home,name='home'),
     path('login/',login_page,name='login'),
     path('signup/',signup,name='signup'),
+    path('classroom/<str:classCode>/', views.classroomData),
     # path('process-webcam/', process_webcam, name='process_webcam')
 ]
 
