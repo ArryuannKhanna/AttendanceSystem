@@ -10,85 +10,157 @@ import base64
 import numpy as np
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from .models import User
 
-# we dont have to render any page, we have to return the response
-
-def loginUser(request):    
-    if request.method == 'POST':    #login user
-        username = request.POST.get('email')
+def loginUser(request):
+    if request.method == 'POST':
+        email = request.POST.get('email')
         password = request.POST.get('password')
         user = authenticate(request, email=email, password=password)
         if user is not None:
             login(request, user)
-            return JsonResponse({'Logged In successfully'})
+            data = {
+                'message': 'Login successful'
+            }
+            response = JsonResponse(data)
+            response.set_cookie('email', email)
+            return response
+        else:
+            return JsonResponse({'error': 'Invalid credentials'}, status=401)
+    else:
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
 
-        return JsonResponse({'User not found'}, status=404)
-
-def registerUser(request):     
-    if request.method == 'POST':    #register user
+def registerUser(request):
+    if request.method == 'POST':
         username = request.POST.get('username')
         email = request.POST.get('email')
         password = request.POST.get('password')
         photos = request.POST.get('photo')
+        
         if User.objects.filter(email=email).exists():
-            return render(request, 'signup.html', {'error': 'Username or email already exists'})
-        user = User.objects.create(username=username,email=email,password=make_password(password))
+            return JsonResponse({'error': 'Email is already registered'}, status=400)
+        
+        user = User.objects.create_user(username=username, email=email, password=password)
         user.save()
-        return JsonResponse({'Registered successfully'})
+        
+        response = JsonResponse({'message': 'Registered successfully'})
+        response.set_cookie('email', email)
+        
+        return response
+    else:
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
 
-from django.shortcuts import render
-from .models import User 
+ 
+def getDashboardDetails(request):
+    if request.method == 'GET':
+        email = request.COOKIES.get('email')
 
-def getDashboardDetails(request): 
-    if request.method == 'GET': # get dashboard details of users
-        email = request.GET.get('email')
-        user = User.objects.get(email=email)
-        username = user.username
-        joinedClasses = user.joinedClasses
-        createdClasses = user.createdClasses
-        data = {
-            'joinedClasses': joinedClasses,
-            'createdClasses': createdClass
-        }
-        return JsonResponse(data)
+        if not email:
+            return JsonResponse({'error': 'Email not found in cookie'}, status=400)
+
+        try:
+            user = User.objects.get(email=email)
+            username = user.username
+            joinedClasses = user.joinedClasses
+            createdClasses = user.createdClasses
+            
+            data = {
+                'username': username,
+                'joinedClasses': joinedClasses,
+                'createdClasses': createdClasses
+            }
+            
+            return JsonResponse(data)
+        except User.DoesNotExist:
+            return JsonResponse({'error': 'User not found'}, status=404)
+    else:
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+from django.contrib.auth.models import User
+from django.http import JsonResponse
 
 def joinClassroom(request):
-    if request.method == 'POST':  
-        email = request.POST.get('email')   # we dont take input email from user
-        joinedClasses = request.POST.get('classCode')
-        user = User.objects.get(email=email)
-        user.joinedClasses = joinedClasses  # add the joined class to list
+    if request.method == 'POST':
+        email = request.COOKIES.get('email')  # Get email from the cookie
+        
+        if not email:
+            return JsonResponse({'error': 'Email not found in cookie'}, status=400)
+        
+        classCode = request.POST.get('classCode')
+        
+        try:
+            user = User.objects.get(email=email)
+            classroom = Classroom.objects.get(code=classCode)  # Assuming you have a Classroom model with a unique code field
+            
+            # Add the classroom to the joinedClasses list
+            user.joinedClasses.add(classroom)
+            user.save()
+            
+            return JsonResponse({'message': 'Classroom joined successfully'}, status=200)
+        except User.DoesNotExist:
+            return JsonResponse({'error': 'User not found'}, status=404)
+        except Classroom.DoesNotExist:
+            return JsonResponse({'error': 'Classroom not found'}, status=404)
+    else:
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
 
-        user.save()
-        return JsonResponse({'Class Joined successfully'}, status=200)    # what to send??
 
 
 def createClassroom(request):
-    if request.method == 'POST': 
-        email = request.POST.get('email')
+    if request.method == 'POST':
+        email = request.COOKIES.get('email')  # Get email from the cookie
+        
+        if not email:
+            return JsonResponse({'error': 'Email not found in cookie'}, status=400)
+        
         className = request.POST.get('className')
-        #handle making a new classroom
-        user = User.objects.get(email=email)
-        user.createdClasses = createdClasses    # add the created class to list
-        user.save()
-        return JsonResponse({'Class Created successfully'}, status=200)    # what to send??
-
+        
+        try:
+            user = User.objects.get(email=email)
+            new_classroom = Classroom.objects.create(name=className)
+            
+            user.createdClasses.add(new_classroom)
+            user.save()
+            
+            return JsonResponse({'message': 'Classroom created successfully'}, status=200)
+        except User.DoesNotExist:
+            return JsonResponse({'error': 'User not found'}, status=404)
     else:
-        return render(request, 'dashboard.html')
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+
+from django.contrib.auth.models import User
+from django.http import JsonResponse
 
 def handleClassroomRequests(request, classCode):
-    if request.method == 'POST':    # update attendance
-        email = request.GET.get('email')
-        studentList = request.GET.get('studentList')
-        classDetails = Class.objects.get(classCode=classCode)
-        attendace = user.attendace
-
-        return JsonResponse({'Attendance saved successfully'}, status=200)
-    elif request.method == 'GET':   #get class Details
-        classDetails = Class.objects.get(classCode=classCode)
-
-        return JsonResponse(classDetails)
-
+    if request.method == 'POST':
+        email = request.COOKIES.get('email')  # Get email from the cookie
+    
+        if not email:
+            return JsonResponse({'error': 'Email not found in cookie'}, status=400)
+        
+        studentList = request.POST.get('studentList')
+        
+        try:
+            user = User.objects.get(email=email)
+            classDetails = Classroom.objects.get(classCode=classCode)
+            # Update attendance logic here
+            
+            return JsonResponse({'message': 'Attendance saved successfully'}, status=200)
+        except User.DoesNotExist:
+            return JsonResponse({'error': 'User not found'}, status=404)
+        except Classroom.DoesNotExist:
+            return JsonResponse({'error': 'Classroom not found'}, status=404)
+    elif request.method == 'GET':
+        try:
+            classDetails = Classroom.objects.get(classCode=classCode)
+            # Get class details logic here
+            
+            return JsonResponse(classDetails)
+        except Classroom.DoesNotExist:
+            return JsonResponse({'error': 'Classroom not found'}, status=404)
+    else:
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
 
 
 
